@@ -12,6 +12,12 @@
 #include <stddef.h>
 #include <inttypes.h>
 
+#ifdef BOINC
+  #include "boinc_api.h"
+#if defined _WIN32 || defined _WIN64
+  #include "boinc_win.h"
+#endif
+#endif
 
 ///=============================================================================
 ///                      Compiler and Platform Features
@@ -4737,11 +4743,42 @@ __global__ void kernel(uint64_t s) {
 #include <unistd.h>
 #include <sys/time.h>
 
+struct checkpoint_vars {
+    unsigned long long offset;
+    time_t elapsed_chkpoint;
+};
+
+time_t elapsed_chkpoint = 0;
+
 int main(int argc, char **argv) {
   int block_min = atoi(argv[1]);
   int block_max = atoi(argv[2]);
   int device = atoi(argv[3]);
+  uint64_t offsetStart = 0;
 
+
+  //BOINC
+  	#ifdef BOINC
+    BOINC_OPTIONS options;
+    boinc_options_defaults(options);
+	options.normal_thread_priority = true;
+    boinc_init_options(&options);
+    FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "rb");
+    if(!checkpoint_data){
+        fprintf(stderr, "No checkpoint to load\n");
+
+    }
+    else{
+        boinc_begin_critical_section();
+        struct checkpoint_vars data_store;
+        fread(&data_store, sizeof(data_store), 1, checkpoint_data);
+        offsetStart = data_store.offset;
+        elapsed_chkpoint = data_store.elapsed_chkpoint;
+        fprintf(stderr, "Checkpoint loaded, task time %d s, seed pos: %llu\n", elapsed_chkpoint, START);
+        fclose(checkpoint_data);
+        boinc_end_critical_section();
+    }
+    #endif
   cudaSetDevice(device);
 
 	int blocks = 32768;
@@ -4752,9 +4789,30 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
 	printf("starting...\n");
-  for (uint64_t s = (uint64_t)block_min; s < (uint64_t)block_max; s++) {
-  	kernel<<<blocks, threads>>>(blocks * threads * s);
-  }
+    uint64_t checkpointTemp = 0;
+    for (uint64_t s = (uint64_t)block_min; s < (uint64_t)block_max; s++) {
+
+        kernel<<<blocks, threads>>>(blocks * threads * s);
+        checkpointTemp += 1;
+        #ifdef BOINC
+        if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
+            time_t elapsed = time(NULL) - start;
+            boinc_begin_critical_section(); // Boinc should not interrupt this
+            
+            // Checkpointing section below
+            boinc_delete_file("checkpoint.txt"); // Don't touch, same func as normal fdel
+            FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "wb");
+            struct checkpoint_vars data_store;
+            data_store.offset = offset;
+            data_store.elapsed_chkpoint = elapsed_chkpoint + elapsed;
+            fwrite(&data_store, sizeof(data_store), 1, checkpoint_data);
+            fclose(checkpoint_data);
+            checkpointTemp = 0;
+            boinc_end_critical_section();
+            boinc_checkpoint_completed(); // Checkpointing completed
+        }
+        #endif
+    }
   cudaDeviceSynchronize();
 
     gettimeofday(&end, NULL);
