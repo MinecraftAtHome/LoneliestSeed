@@ -4738,8 +4738,8 @@ __global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages) {
        		}
         }
     }
-    out[blockDim.x * blockIdx.x + threadIdx.x + s] = seed;
-    out_villages[blockDim.x * blockIdx.x + threadIdx.x + s] = villages;
+    out[blockDim.x * blockIdx.x + threadIdx.x] = seed;
+    out_villages[blockDim.x * blockIdx.x + threadIdx.x] = villages;
     //printf("%d\n", villages);
     //printf("Found new best: %" PRIi64 " %d\n", seed, villages);
 }
