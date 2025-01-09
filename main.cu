@@ -4828,7 +4828,7 @@ int main(int argc, char **argv) {
     FILE* seedsout = fopen("seeds.txt", "w+");
     for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
-        kernel<<<blocks, threads>>>(blocks * threads * s, out, radius, villages);
+        kernel<<<blocks, threads>>>(blocks * threads * s, out, out_villages, radius, villages);
         cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
