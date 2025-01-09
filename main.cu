@@ -60,7 +60,7 @@ __device__ __host__ static inline uint32_t BSWAP32(uint32_t x) {
     return x;
 }
 #if _MSC_VER
-#define UNREACHABLE()           __assume(0)
+#define UNREACHABLE()           
 #else
 #define UNREACHABLE()           exit(1) // [[noreturn]]
 #endif
@@ -3686,7 +3686,10 @@ typedef struct {
 } Stack;
 
 __device__ __host__ StackFrame new_frame(int index, int depth) {
-    return (StackFrame){.depth=depth, .index=index};
+    StackFrame frame;
+    frame.depth = depth;
+    frame.index = index;
+    return frame;
 }
 
 __device__ __host__ void push(Stack *stack, StackFrame frame) {
@@ -4701,9 +4704,9 @@ __host__ __device__ int isViableStructurePos(int structureType, Generator *g, in
 __device__ int best = 9999;
 __device__ __managed__ unsigned long long int checked = 0;
 
-__global__ void kernel(uint64_t s) {
+__global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages) {
     uint64_t input_seed = blockDim.x * blockIdx.x + threadIdx.x + s;
-    atomicAdd(&checked, 1ull);
+    //atomicAdd(&checked, 1ull);
 
     int structType = Village;
     int mc = MC_1_20;
@@ -4735,13 +4738,20 @@ __global__ void kernel(uint64_t s) {
        		}
         }
     }
+    out[blockDim.x * blockIdx.x + threadIdx.x + s] = seed;
+    out_villages[blockDim.x * blockIdx.x + threadIdx.x + s] = villages;
     //printf("%d\n", villages);
-    printf("Found new best: %" PRIi64 " %d\n", seed, villages);
+    //printf("Found new best: %" PRIi64 " %d\n", seed, villages);
 }
 
 #include <time.h>
+
+#ifdef __GNUC__
+
 #include <unistd.h>
 #include <sys/time.h>
+
+#endif
 
 struct checkpoint_vars {
     unsigned long long offset;
@@ -4751,48 +4761,53 @@ struct checkpoint_vars {
 time_t elapsed_chkpoint = 0;
 
 int main(int argc, char **argv) {
-  int block_min = atoi(argv[1]);
-  int block_max = atoi(argv[2]);
-  int device = atoi(argv[3]);
-  uint64_t offsetStart = 0;
-
-
-  //BOINC
-  	#ifdef BOINC
-    BOINC_OPTIONS options;
-    boinc_options_defaults(options);
-	options.normal_thread_priority = true;
-    boinc_init_options(&options);
-    FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "rb");
-    if(!checkpoint_data){
-        fprintf(stderr, "No checkpoint to load\n");
-
-    }
-    else{
-        boinc_begin_critical_section();
-        struct checkpoint_vars data_store;
-        fread(&data_store, sizeof(data_store), 1, checkpoint_data);
-        offsetStart = data_store.offset;
-        elapsed_chkpoint = data_store.elapsed_chkpoint;
-        fprintf(stderr, "Checkpoint loaded, task time %d s, seed pos: %llu\n", elapsed_chkpoint, START);
-        fclose(checkpoint_data);
-        boinc_end_critical_section();
-    }
-    #endif
-  cudaSetDevice(device);
-
+    int block_min = atoi(argv[1]);
+    int block_max = atoi(argv[2]);
+    int device = atoi(argv[3]);
+    uint64_t offsetStart = 0;
+    uint64_t *out;
+    uint64_t *out_villages;
+    //GPU Params
 	int blocks = 32768;
 	int threads = 32;
+    //BOINC
+  	#ifdef BOINC
+        BOINC_OPTIONS options;
+        boinc_options_defaults(options);
+	    options.normal_thread_priority = true;
+        boinc_init_options(&options);
+        FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "rb");
+        if(!checkpoint_data){
+            fprintf(stderr, "No checkpoint to load\n");
 
-    struct timeval start, end;
+        }
+        else{
+            boinc_begin_critical_section();
+            struct checkpoint_vars data_store;
+            fread(&data_store, sizeof(data_store), 1, checkpoint_data);
+            offsetStart = data_store.offset;
+            elapsed_chkpoint = data_store.elapsed_chkpoint;
+            fprintf(stderr, "Checkpoint loaded, task time %d s, seed pos: %llu\n", elapsed_chkpoint, offsetStart);
+            fclose(checkpoint_data);
+            boinc_end_critical_section();
+        }
+    #endif
+    cudaSetDevice(device);
+    cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
+    cudaMallocManaged(&out_villages, (blocks * threads) * sizeof(*out_villages));
 
-    gettimeofday(&start, NULL);
+
+    time_t start = time(NULL);
+
+    //gettimeofday(&start, NULL);
 
 	printf("starting...\n");
     uint64_t checkpointTemp = 0;
-    for (uint64_t s = (uint64_t)block_min; s < (uint64_t)block_max; s++) {
+    FILE* seedsout = fopen("seeds.txt", "w+");
+    for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
-        kernel<<<blocks, threads>>>(blocks * threads * s);
+        kernel<<<blocks, threads>>>(blocks * threads * s, out, out_villages);
+        cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
         if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
@@ -4803,7 +4818,7 @@ int main(int argc, char **argv) {
             boinc_delete_file("checkpoint.txt"); // Don't touch, same func as normal fdel
             FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "wb");
             struct checkpoint_vars data_store;
-            data_store.offset = offset;
+            data_store.offset = s;
             data_store.elapsed_chkpoint = elapsed_chkpoint + elapsed;
             fwrite(&data_store, sizeof(data_store), 1, checkpoint_data);
             fclose(checkpoint_data);
@@ -4812,19 +4827,23 @@ int main(int argc, char **argv) {
             boinc_checkpoint_completed(); // Checkpointing completed
         }
         #endif
+        for (unsigned long long i = 0; i < blocks * threads; i++){
+            if(out[i] > 0)
+			    fprintf(seedsout,"s: %llu, v: %llu\n", out[i], out_villages[i]);
+		}
+		fflush(seedsout);
     }
-  cudaDeviceSynchronize();
 
-    gettimeofday(&end, NULL);
 
-    double time_taken = end.tv_sec + end.tv_usec / 1e6 -
-                        start.tv_sec - start.tv_usec / 1e6; // in seconds
+    time_t end = time(NULL);
 
-  printf("checked = %" PRIu64 "\n", checked);
-  printf("time taken = %f\n", time_taken);
+    double time_taken = end - start ; // in seconds
+    checked = blocks*threads*(block_max - block_min);
+    fprintf(stderr, "checked = %" PRIu64 "\n", checked);
+    fprintf(stderr, "time taken = %f\n", time_taken);
 
 	double seeds_per_second = checked / time_taken;
 	double speedup = seeds_per_second / 199000;
-	printf("seeds per second: %f\n", seeds_per_second);
-	printf("speedup: %fx\n", speedup);
+	fprintf(stderr, "seeds per second: %f\n", seeds_per_second);
+	fprintf(stderr, "speedup: %fx\n", speedup);
 }
