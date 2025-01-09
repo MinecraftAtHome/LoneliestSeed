@@ -4704,7 +4704,7 @@ __host__ __device__ int isViableStructurePos(int structureType, Generator *g, in
 __device__ int best = 9999;
 __device__ __managed__ unsigned long long int checked = 0;
 
-__global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages) {
+__global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages, int radius, int village_thresh) {
     uint64_t input_seed = blockDim.x * blockIdx.x + threadIdx.x + s;
     //atomicAdd(&checked, 1ull);
 
@@ -4727,14 +4727,15 @@ __global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages) {
     int villages = 0;
     int i = 0;
     bool found = false;
-    for (int rx = -6; rx < 6; rx++) {
-        for (int rz = -6; rz < 6; rz++) {
+    for (int rx = -1*radius; rx < radius; rx++) {
+        for (int rz = -1*radius; rz < radius; rz++) {
             Pos p = getFeaturePos(sconf, seed, rx, rz);
             found = isViableStructurePos(structType, &g, p.x, p.z, 0);
 
            	if (found) {
-           		//villages++;
-       			return;
+           		villages++;
+       			if(villages > village_thresh)
+                    return;
        		}
         }
     }
@@ -4761,12 +4762,34 @@ struct checkpoint_vars {
 time_t elapsed_chkpoint = 0;
 
 int main(int argc, char **argv) {
+    uint64_t block_min = 0;
+    uint64_t block_max = 0;
+    int radius = 6;
+    int device = 0;
+    int villages = 1;
+    for (int i = 1; i < argc; i += 2) {
+		const char *param = argv[i];
+		if (strcmp(param, "-d") == 0 || strcmp(param, "--device") == 0) {
+			gpu_device = atoi(argv[i + 1]);
+		} else if (strcmp(param, "-s") == 0 || strcmp(param, "--start") == 0) {
+			sscanf(argv[i + 1], "%llu", &block_min);
+		} else if (strcmp(param, "-e") == 0 || strcmp(param, "--end") == 0) {
+			sscanf(argv[i + 1], "%llu", &block_max);
+		} else if (strcmp(param, "-r") == 0 || stcmp(param, "--radius") == 0){
+            radius = atoi(arg[i+1]);
+        } else if (strcmp(param, "-v") == 0 || stcmp(param, "--villages") == 0){
+            villages = atoi(argv[i+1]);
+        }
+        else {
+			fprintf(stderr,"Unknown parameter: %s\n", param);
+        }
+    }
     int block_min = atoi(argv[1]);
     int block_max = atoi(argv[2]);
-    int device = atoi(argv[3]);
+    int radius = atoi(argv[3]);
+    int device = atoi(argv[4])
     uint64_t offsetStart = 0;
     uint64_t *out;
-    uint64_t *out_villages;
     //GPU Params
 	int blocks = 32768;
 	int threads = 32;
@@ -4795,7 +4818,6 @@ int main(int argc, char **argv) {
     cudaSetDevice(device);
     cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
 
-
     time_t start = time(NULL);
 
     //gettimeofday(&start, NULL);
@@ -4805,7 +4827,7 @@ int main(int argc, char **argv) {
     FILE* seedsout = fopen("seeds.txt", "w+");
     for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
-        kernel<<<blocks, threads>>>(blocks * threads * s, out, out_villages);
+        kernel<<<blocks, threads>>>(blocks * threads * s, out, radius, villages);
         cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
@@ -4828,8 +4850,9 @@ int main(int argc, char **argv) {
         #endif
         for (unsigned long long i = 0; i < blocks * threads; i++){
             if(out[i] > 0){
-			    fprintf(seedsout,"s: %llu\n", out[i]);
+			    fprintf(seedsout,"%llu %llu\n", out[i], out_villages[i]);
                 out[i] = 0;
+                out_villages[i] = 0;
             }
 
 		}
