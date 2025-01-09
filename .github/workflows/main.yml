@@ -7,7 +7,7 @@ jobs:
     name: cuda/release/windows
     runs-on: [windows-latest]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: ilammy/msvc-dev-cmd@v1
     - name: setup
       run: |
@@ -19,7 +19,7 @@ jobs:
       run: |
         nvcc --std c++20 -m=64 -O3 -Xptxas -dlcm=cg main.cu -o out.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32
         dir
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
        name: loneliest-cuda-win
        path: .\loneliest*.exe
@@ -28,12 +28,12 @@ jobs:
     runs-on: [ubuntu-latest]
     container: nvidia/cuda:12.6-devel-ubuntu24.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: build
       run: |
         nvcc loneliest.cu -Xcompiler -static-libgcc -Xcompiler -static-libstdc++ -m64 -O3 -o loneliest-cuda -DBOINC -Iboinc/ -Lboinc/lib/lin -lcuda -lboinc_api -lboinc -Xptxas -v
         ls -la
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
        name: loneliest-cuda-lin
        path: ./loneliest-cuda*
