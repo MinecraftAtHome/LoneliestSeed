@@ -4790,6 +4790,7 @@ int main(int argc, char **argv) {
     int device = atoi(argv[4])
     uint64_t offsetStart = 0;
     uint64_t *out;
+    uint64_t *out_villages;
     //GPU Params
 	int blocks = 32768;
 	int threads = 32;
@@ -4817,7 +4818,7 @@ int main(int argc, char **argv) {
     #endif
     cudaSetDevice(device);
     cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
-
+    cudaMallocManaged(&out_villages, (blocks * threads) * sizeof(*out_villages));
     time_t start = time(NULL);
 
     //gettimeofday(&start, NULL);
