@@ -1,0 +1,39 @@
+name: cuda-cross-build
+
+on: [push]
+
+jobs:
+  windows_cuda:
+    name: cuda/release/windows
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: setup
+      run: |
+        choco install cuda --version=12.6 -y
+    - name: configure
+      run: |
+        echo "##[add-path]C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\lib\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\extras\CUPTI\libx64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\lib"
+    - name: build
+      run: |
+        nvcc --std c++20 -m=64 -O3 -Xptxas -dlcm=cg main.cu -o out.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32
+        dir
+    - uses: actions/upload-artifact@v2
+      with:
+       name: loneliest-cuda-win
+       path: .\loneliest*.exe
+  linux_cuda:
+    name: cuda/release/linux
+    runs-on: [ubuntu-latest]
+    container: nvidia/cuda:12.6-devel-ubuntu24.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: |
+        nvcc loneliest.cu -Xcompiler -static-libgcc -Xcompiler -static-libstdc++ -m64 -O3 -o loneliest-cuda -DBOINC -Iboinc/ -Lboinc/lib/lin -lcuda -lboinc_api -lboinc -Xptxas -v
+        ls -la
+    - uses: actions/upload-artifact@v2
+      with:
+       name: loneliest-cuda-lin
+       path: ./loneliest-cuda*
