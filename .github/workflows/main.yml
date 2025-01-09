@@ -11,7 +11,7 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@v1
     - name: setup
       run: |
-        choco install cuda --version=12.6.3 -y
+        choco install cuda -y
     - name: configure
       run: |
         echo "##[add-path]C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\lib\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\extras\CUPTI\libx64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\lib"
