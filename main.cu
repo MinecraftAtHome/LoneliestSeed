@@ -4770,24 +4770,20 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; i += 2) {
 		const char *param = argv[i];
 		if (strcmp(param, "-d") == 0 || strcmp(param, "--device") == 0) {
-			gpu_device = atoi(argv[i + 1]);
+			device = atoi(argv[i + 1]);
 		} else if (strcmp(param, "-s") == 0 || strcmp(param, "--start") == 0) {
 			sscanf(argv[i + 1], "%llu", &block_min);
 		} else if (strcmp(param, "-e") == 0 || strcmp(param, "--end") == 0) {
 			sscanf(argv[i + 1], "%llu", &block_max);
-		} else if (strcmp(param, "-r") == 0 || stcmp(param, "--radius") == 0){
-            radius = atoi(arg[i+1]);
-        } else if (strcmp(param, "-v") == 0 || stcmp(param, "--villages") == 0){
+		} else if (strcmp(param, "-r") == 0 || strcmp(param, "--radius") == 0){
+            radius = atoi(argv[i+1]);
+        } else if (strcmp(param, "-v") == 0 || strcmp(param, "--villages") == 0){
             villages = atoi(argv[i+1]);
         }
         else {
 			fprintf(stderr,"Unknown parameter: %s\n", param);
         }
     }
-    int block_min = atoi(argv[1]);
-    int block_max = atoi(argv[2]);
-    int radius = atoi(argv[3]);
-    int device = atoi(argv[4])
     uint64_t offsetStart = 0;
     uint64_t *out;
     uint64_t *out_villages;
