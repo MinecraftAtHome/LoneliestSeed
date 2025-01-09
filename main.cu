@@ -4794,7 +4794,6 @@ int main(int argc, char **argv) {
     #endif
     cudaSetDevice(device);
     cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
-    cudaMallocManaged(&out_villages, (blocks * threads) * sizeof(*out_villages));
 
 
     time_t start = time(NULL);
@@ -4818,7 +4817,7 @@ int main(int argc, char **argv) {
             boinc_delete_file("checkpoint.txt"); // Don't touch, same func as normal fdel
             FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "wb");
             struct checkpoint_vars data_store;
-            data_store.offset = s;
+            data_store.offset = s - block_min;
             data_store.elapsed_chkpoint = elapsed_chkpoint + elapsed;
             fwrite(&data_store, sizeof(data_store), 1, checkpoint_data);
             fclose(checkpoint_data);
@@ -4828,10 +4827,14 @@ int main(int argc, char **argv) {
         }
         #endif
         for (unsigned long long i = 0; i < blocks * threads; i++){
-            if(out[i] > 0)
-			    fprintf(seedsout,"s: %llu, v: %llu\n", out[i], out_villages[i]);
+            if(out[i] > 0){
+			    fprintf(seedsout,"s: %llu\n", out[i]);
+                out[i] = 0;
+            }
+
 		}
 		fflush(seedsout);
+
     }
 
 
