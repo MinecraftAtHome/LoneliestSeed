@@ -4830,7 +4830,7 @@ int main(int argc, char **argv) {
         cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
-        double frac = (double) s / (double)(block_max - block_min);
+        double frac = (double)(s - block_min) / (double)(block_max - block_min);
         boinc_fraction_done(frac);
         if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
             time_t elapsed = time(NULL) - start;
