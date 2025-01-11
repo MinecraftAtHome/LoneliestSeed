@@ -4704,7 +4704,9 @@ __host__ __device__ int isViableStructurePos(int structureType, Generator *g, in
 __device__ int best = 9999;
 __device__ __managed__ unsigned long long int checked = 0;
 
-__global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages, int radius, int village_thresh) {
+__device__ int radius = 6;
+
+__global__ void kernel(uint64_t s, uint64_t *out) {
     uint64_t input_seed = blockDim.x * blockIdx.x + threadIdx.x + s;
     //atomicAdd(&checked, 1ull);
 
@@ -4733,14 +4735,14 @@ __global__ void kernel(uint64_t s, uint64_t *out, uint64_t *out_villages, int ra
             found = isViableStructurePos(structType, &g, p.x, p.z, 0);
 
            	if (found) {
-           		villages++;
-       			if(villages > village_thresh)
-                    return;
+            //villages++;
+            //if(villages > village_thresh)
+                return;
        		}
         }
     }
     out[blockDim.x * blockIdx.x + threadIdx.x] = seed;
-    out_villages[blockDim.x * blockIdx.x + threadIdx.x] = villages;
+    //out_villages[blockDim.x * blockIdx.x + threadIdx.x] = villages;
     //printf("%d\n", villages);
     //printf("Found new best: %" PRIi64 " %d\n", seed, villages);
 }
@@ -4764,9 +4766,9 @@ time_t elapsed_chkpoint = 0;
 int main(int argc, char **argv) {
     uint64_t block_min = 0;
     uint64_t block_max = 0;
-    int radius = 6;
+    //int radius = 6;
     int device = 0;
-    int villages = 1;
+    //int villages = 0;
     for (int i = 1; i < argc; i += 2) {
 		const char *param = argv[i];
 		if (strcmp(param, "-d") == 0 || strcmp(param, "--device") == 0) {
@@ -4777,9 +4779,9 @@ int main(int argc, char **argv) {
 			sscanf(argv[i + 1], "%llu", &block_max);
 		} else if (strcmp(param, "-r") == 0 || strcmp(param, "--radius") == 0){
             radius = atoi(argv[i+1]);
-        } else if (strcmp(param, "-v") == 0 || strcmp(param, "--villages") == 0){
-            villages = atoi(argv[i+1]);
-        }
+        } //else if (strcmp(param, "-v") == 0 || strcmp(param, "--villages") == 0){
+            //villages = atoi(argv[i+1]);
+        //}
         else {
 			fprintf(stderr,"Unknown parameter: %s\n", param);
         }
@@ -4824,7 +4826,7 @@ int main(int argc, char **argv) {
     FILE* seedsout = fopen("seeds.txt", "w+");
     for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
-        kernel<<<blocks, threads>>>(blocks * threads * s, out, out_villages, radius, villages);
+        kernel<<<blocks, threads>>>(blocks * threads * s, out);
         cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
@@ -4847,9 +4849,9 @@ int main(int argc, char **argv) {
         #endif
         for (unsigned long long i = 0; i < blocks * threads; i++){
             if(out[i] > 0){
-			    fprintf(seedsout,"%llu %llu\n", out[i], out_villages[i]);
+			    fprintf(seedsout,"%llu\n", out[i]);
                 out[i] = 0;
-                out_villages[i] = 0;
+                //out_villages[i] = 0;
             }
 
 		}
