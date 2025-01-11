@@ -4830,8 +4830,6 @@ int main(int argc, char **argv) {
         cudaDeviceSynchronize();
         checkpointTemp += 1;
         #ifdef BOINC
-        double frac = (double)(s - block_min) / (double)(block_max - block_min);
-        boinc_fraction_done(frac);
         if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
             time_t elapsed = time(NULL) - start;
             boinc_begin_critical_section(); // Boinc should not interrupt this
@@ -4858,7 +4856,8 @@ int main(int argc, char **argv) {
 
 		}
 		fflush(seedsout);
-
+        double frac = (double)(s+1 - block_min) / (double)(block_max - block_min);
+        boinc_fraction_done(frac);
     }
 
 
@@ -4873,4 +4872,5 @@ int main(int argc, char **argv) {
 	double speedup = seeds_per_second / 199000;
 	fprintf(stderr, "seeds per second: %f\n", seeds_per_second);
 	fprintf(stderr, "speedup: %fx\n", speedup);
+    boinc_finish(0);
 }
