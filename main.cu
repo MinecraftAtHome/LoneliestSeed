@@ -4801,6 +4801,14 @@ int main(int argc, char **argv) {
 	int threads = 32;
     //BOINC
   	#ifdef BOINC
+        APP_INIT_DATA aid;
+	    boinc_get_init_data(aid);
+        if (aid.gpu_device_num >= 0) {
+		    device = aid.gpu_device_num;
+		    fprintf(stderr,"boinc gpu %i gpuindex: %i \n", aid.gpu_device_num, gpu_device);
+		} else {
+		    fprintf(stderr,"stndalone gpuindex %i \n", device);
+	    }   
         BOINC_OPTIONS options;
         boinc_options_defaults(options);
 	    options.normal_thread_priority = true;
