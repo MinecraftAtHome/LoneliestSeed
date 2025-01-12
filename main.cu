@@ -19,6 +19,14 @@
 #endif
 #endif
 
+#define GPU_ASSERT(code) gpuAssert((code), __FILE__, __LINE__)
+inline void gpuAssert(cudaError_t code, const char *file, int line) {
+  if (code != cudaSuccess) {
+    fprintf(stderr, "GPUassert: %s (code %d) %s %d\n", cudaGetErrorString(code), code, file, line);
+    exit(code);
+  }
+}
+
 ///=============================================================================
 ///                      Compiler and Platform Features
 ///=============================================================================
@@ -4702,7 +4710,6 @@ __host__ __device__ int isViableStructurePos(int structureType, Generator *g, in
 }
 
 __device__ int best = 9999;
-__device__ __managed__ unsigned long long int checked = 0;
 
 __device__ int radius = 6;
 
@@ -4766,6 +4773,7 @@ time_t elapsed_chkpoint = 0;
 int main(int argc, char **argv) {
     uint64_t block_min = 0;
     uint64_t block_max = 0;
+    uint64_t checked = 0;
     //int radius = 6;
     int device = 0;
     //int villages = 0;
@@ -4788,7 +4796,6 @@ int main(int argc, char **argv) {
     }
     uint64_t offsetStart = 0;
     uint64_t *out;
-    uint64_t *out_villages;
     //GPU Params
 	int blocks = 32768;
 	int threads = 32;
@@ -4816,7 +4823,9 @@ int main(int argc, char **argv) {
     #endif
     cudaSetDevice(device);
     cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
-    cudaMallocManaged(&out_villages, (blocks * threads) * sizeof(*out_villages));
+    for(int i = 0; i < (blocks * threads); i++){
+        out[i] = 0;
+    }
     time_t start = time(NULL);
 
     //gettimeofday(&start, NULL);
@@ -4827,7 +4836,8 @@ int main(int argc, char **argv) {
     for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
         kernel<<<blocks, threads>>>(blocks * threads * s, out);
-        cudaDeviceSynchronize();
+        GPU_ASSERT(cudaPeekAtLastError());
+        GPU_ASSERT(cudaDeviceSynchronize());  
         checkpointTemp += 1;
         #ifdef BOINC
         if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
