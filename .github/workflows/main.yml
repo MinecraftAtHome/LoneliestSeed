@@ -15,7 +15,7 @@ jobs:
         cuda: '12.2.2'
     - name: build
       run: |
-        nvcc --std c++20 -m=64 -O3 -Xptxas -dlcm=cg main.cu -o loneliest-cuda.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32
+        nvcc --std c++20 -m=64 -O3 -Xptxas -dlcm=cg main.cu -o loneliest-cuda.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32 -allow-unsupported-compiler
         dir
     - uses: actions/upload-artifact@v3
       with:
