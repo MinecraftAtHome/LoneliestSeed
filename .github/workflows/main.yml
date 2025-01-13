@@ -53,8 +53,7 @@ jobs:
         -m=64 -dlcm=cg main.cu -o loneliest-cuda.exe -diag-suppress 177 \
         -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ \
         -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ \
-        -lboinc_api -lboinc -lculibos -lcudart_static -lcufft_static -lrt -lz -lpthread \
-        -lrt -ldl -lculibos -lcudart_static -lcufft_static -luser32 -DBOINC -D_WIN32 \
+        -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32 \
         -allow-unsupported-compiler
         dir
     - uses: actions/upload-artifact@v3
@@ -76,10 +75,7 @@ jobs:
         --generate-code arch=compute_80,code=sm_80 --generate-code arch=compute_86,code=sm_86 \
         --generate-code arch=compute_89,code=sm_89 \
         main.cu -m64 -o loneliest-cuda \
-        -DBOINC -Iboinc/ -Lboinc/lib/lin \
-        -lculibos -lcudart_static -lcufft_static -lrt -lz -lpthread -lrt -ldl -lculibos \
-        -lcudart_static -lcufft_static -lcuda \
-        -lboinc_api -lboinc -Xptxas -v
+        -DBOINC -Iboinc/ -Lboinc/lib/lin -lcuda -lboinc_api -lboinc -Xptxas -v
         ls -la
     - uses: actions/upload-artifact@v3
       with:
