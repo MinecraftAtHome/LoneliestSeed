@@ -44,7 +44,7 @@ jobs:
     - name: build
       run: |
       
-        nvcc -g -maxrregcount 32 --resource-usage -lineinfo -Xptxas -lineinfo -v -O3 --generate-code arch=compute_50,code=sm_50 --generate-code arch=compute_52,code=sm_52 --generate-code arch=compute_60,code=sm_60 --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_70,code=sm_70 --generate-code arch=compute_75,code=sm_75 --generate-code arch=compute_80,code=sm_80 --generate-code arch=compute_86,code=sm_86 --generate-code arch=compute_89,code=sm_89 -m=64 -dlcm=cg main.cu -o loneliest-cuda.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32 -allow-unsupported-compiler
+        nvcc -g -maxrregcount 32 --resource-usage -lineinfo -Xptxas -lineinfo -v -O3 --generate-code arch=compute_50,code=sm_50 --generate-code arch=compute_52,code=sm_52 --generate-code arch=compute_60,code=sm_60 --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_70,code=sm_70 --generate-code arch=compute_75,code=sm_75 --generate-code arch=compute_80,code=sm_80 --generate-code arch=compute_86,code=sm_86 --generate-code arch=compute_89,code=sm_89 -m=64 main.cu -o loneliest-cuda.exe -diag-suppress 177 -ID:\a\LoneliestSeed\LoneliestSeed\boinc\ -ID:\a\LoneliestSeed\LoneliestSeed\boinc\win\ -LD:\a\LoneliestSeed\LoneliestSeed\boinc\lib\win\ -lboinc_api -lboinc -lcuda -luser32 -DBOINC -D_WIN32 -allow-unsupported-compiler
         dir
     - uses: actions/upload-artifact@v3
       with:
