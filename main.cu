@@ -4814,7 +4814,7 @@ int main(int argc, char **argv) {
   
             }
 		    fprintf(stderr,"stndalone gpuindex %i (aid value: %i)\n", device, aid.gpu_device_num);
-            fprintf(stderr,"argv: %s", argv)
+            fprintf(stderr,"argv: %s", argv);
 	    }   
         BOINC_OPTIONS options;
         boinc_options_defaults(options);
