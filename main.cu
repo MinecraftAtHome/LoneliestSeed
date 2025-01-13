@@ -4807,6 +4807,12 @@ int main(int argc, char **argv) {
 		    device = aid.gpu_device_num;
 		    fprintf(stderr,"boinc gpu %i gpuindex: %i \n", aid.gpu_device_num, device);
 		} else {
+            for (int i = 1; i < argc; i += 2) {
+              	if(strcmp(argv[i], "--device") == 0){
+                    sscanf(argv[i + 1], "%i", &device);
+                }
+  
+            }
 		    fprintf(stderr,"stndalone gpuindex %i \n", device);
 	    }   
         BOINC_OPTIONS options;
