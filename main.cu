@@ -4881,7 +4881,7 @@ int main(int argc, char **argv) {
 
     time_t end = time(NULL);
 
-    double time_taken = end - start ; // in seconds
+    double time_taken = (end - start) + elapsed_chkpoint; // in seconds
     checked = blocks*threads*(block_max - block_min);
     fprintf(stderr, "checked = %" PRIu64 "\n", checked);
     fprintf(stderr, "time taken = %f\n", time_taken);
