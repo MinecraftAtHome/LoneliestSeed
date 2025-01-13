@@ -4801,6 +4801,10 @@ int main(int argc, char **argv) {
 	int threads = 32;
     //BOINC
   	#ifdef BOINC
+        BOINC_OPTIONS options;
+        boinc_options_defaults(options);
+	    options.normal_thread_priority = true;
+        boinc_init_options(&options);
         APP_INIT_DATA aid;
 	    boinc_get_init_data(aid);
         if (aid.gpu_device_num >= 0) {
@@ -4820,10 +4824,7 @@ int main(int argc, char **argv) {
             }
 		    fprintf(stderr,"stndalone gpuindex %i (aid value: %i)\n", device, aid.gpu_device_num);
 	    }   
-        BOINC_OPTIONS options;
-        boinc_options_defaults(options);
-	    options.normal_thread_priority = true;
-        boinc_init_options(&options);
+
         FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "rb");
         if(!checkpoint_data){
             fprintf(stderr, "No checkpoint to load\n");
