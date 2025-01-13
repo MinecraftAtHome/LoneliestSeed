@@ -4807,14 +4807,18 @@ int main(int argc, char **argv) {
 		    device = aid.gpu_device_num;
 		    fprintf(stderr,"boinc gpu %i gpuindex: %i \n", aid.gpu_device_num, device);
 		} else {
+            device = -5;
             for (int i = 1; i < argc; i += 2) {
               	if(strcmp(argv[i], "--device") == 0){
                     sscanf(argv[i + 1], "%i", &device);
                 }
   
             }
+            if(device == -5){
+                fprintf(stderr, "Error: No --device parameter provided! Defaulting to device 0...\n");
+                device = 0;
+            }
 		    fprintf(stderr,"stndalone gpuindex %i (aid value: %i)\n", device, aid.gpu_device_num);
-            fprintf(stderr,"argv: %s", argv);
 	    }   
         BOINC_OPTIONS options;
         boinc_options_defaults(options);
