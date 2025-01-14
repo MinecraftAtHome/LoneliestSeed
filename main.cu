@@ -4755,6 +4755,8 @@ __global__ void kernel(uint64_t s, uint64_t *out) {
 }
 
 #include <time.h>
+#include <chrono>
+using namespace std::chrono;
 
 #ifdef __GNUC__
 
@@ -4765,10 +4767,10 @@ __global__ void kernel(uint64_t s, uint64_t *out) {
 
 struct checkpoint_vars {
     unsigned long long offset;
-    time_t elapsed_chkpoint;
+    uint64_t elapsed_chkpoint;
 };
 
-time_t elapsed_chkpoint = 0;
+uint64_t elapsed_chkpoint = 0;
 
 int main(int argc, char **argv) {
     uint64_t block_min = 0;
@@ -4846,8 +4848,8 @@ int main(int argc, char **argv) {
     for(int i = 0; i < (blocks * threads); i++){
         out[i] = 0;
     }
-    time_t start = time(NULL);
-
+    //time_t start = time(NULL);
+    auto start = high_resolution_clock::now();
     //gettimeofday(&start, NULL);
 
 	printf("starting...\n");
@@ -4861,7 +4863,9 @@ int main(int argc, char **argv) {
         checkpointTemp += 1;
         #ifdef BOINC
         if(checkpointTemp >= 15 || boinc_time_to_checkpoint()){
-            time_t elapsed = time(NULL) - start;
+            //time_t elapsed = time(NULL) - start;
+            auto checkpoint_end = high_resolution_clock::now();
+            auto duration = duration_cast<milliseconds>(checkpoint_end - start);
             boinc_begin_critical_section(); // Boinc should not interrupt this
             
             // Checkpointing section below
@@ -4869,7 +4873,7 @@ int main(int argc, char **argv) {
             FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "wb");
             struct checkpoint_vars data_store;
             data_store.offset = s - block_min;
-            data_store.elapsed_chkpoint = elapsed_chkpoint + elapsed;
+            data_store.elapsed_chkpoint = elapsed_chkpoint + duration.count();
             fwrite(&data_store, sizeof(data_store), 1, checkpoint_data);
             fclose(checkpoint_data);
             checkpointTemp = 0;
@@ -4891,14 +4895,14 @@ int main(int argc, char **argv) {
     }
 
 
-    time_t end = time(NULL);
-
-    double time_taken = (end - start) + elapsed_chkpoint; // in seconds
+    //time_t end = time(NULL);
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start);
     checked = blocks*threads*(block_max - block_min);
     fprintf(stderr, "checked = %" PRIu64 "\n", checked);
-    fprintf(stderr, "time taken = %f\n", time_taken);
+    fprintf(stderr, "time taken = %f\n", (double)duration.count()/1000.0);
 
-	double seeds_per_second = checked / time_taken;
+	double seeds_per_second = checked / ((double)duration.count()/1000.0);
 	double speedup = seeds_per_second / 199000;
 	fprintf(stderr, "seeds per second: %f\n", seeds_per_second);
 	fprintf(stderr, "speedup: %fx\n", speedup);
