@@ -51,7 +51,7 @@ jobs:
   linux_cuda:
     name: cuda/release/linux
     runs-on: [ubuntu-latest]
-    container: nvidia/cuda:12.2.2-devel-ubuntu20.04
+    container: nvidia/cuda:12.6.3-devel-ubuntu20.04
     steps:
     - uses: actions/checkout@v4
     - name: build
