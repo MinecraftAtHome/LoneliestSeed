@@ -4711,7 +4711,7 @@ __host__ __device__ int isViableStructurePos(int structureType, Generator *g, in
 
 __device__ int best = 9999;
 
-__device__ int radius = 6;
+__device__ int radius = 5;
 
 __global__ void kernel(uint64_t s, uint64_t *out) {
     uint64_t input_seed = blockDim.x * blockIdx.x + threadIdx.x + s;
