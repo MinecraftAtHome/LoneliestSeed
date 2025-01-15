@@ -4715,24 +4715,19 @@ __device__ int radius = 5;
 
 __global__ void kernel(uint64_t s, uint64_t *out) {
     uint64_t input_seed = blockDim.x * blockIdx.x + threadIdx.x + s;
-    //atomicAdd(&checked, 1ull);
-
     int structType = Village;
     int mc = MC_1_20;
-
+    int region_size = 34;
+    
+    int size = 5 * region_size;
     Generator g;
     setupGenerator(&g, mc, 0);
-
     StructureConfig sconf;
     getStructureConfig(Village, mc, &sconf);
 
-    int region_size = 34;
-
-    int size = 5 * region_size;
-
     uint64_t seed = input_seed;
-    //printf("%" PRIu64 "\n", seed);
     applySeed(&g, DIM_OVERWORLD, seed);
+
     int villages = 0;
     int i = 0;
     bool found = false;
@@ -4742,16 +4737,11 @@ __global__ void kernel(uint64_t s, uint64_t *out) {
             found = isViableStructurePos(structType, &g, p.x, p.z, 0);
 
            	if (found) {
-            //villages++;
-            //if(villages > village_thresh)
                 return;
        		}
         }
     }
     out[blockDim.x * blockIdx.x + threadIdx.x] = seed;
-    //out_villages[blockDim.x * blockIdx.x + threadIdx.x] = villages;
-    //printf("%d\n", villages);
-    //printf("Found new best: %" PRIi64 " %d\n", seed, villages);
 }
 
 #include <time.h>
@@ -4843,8 +4833,26 @@ int main(int argc, char **argv) {
             boinc_end_critical_section();
         }
     #endif
+    
     cudaSetDevice(device);
     cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
+    // int numBlocks;
+    // cudaDeviceProp prop;
+    // int activeWarps;
+    // int maxWarps;
+    // cudaGetDevice(&device);
+    // cudaGetDeviceProperties(&prop, device);
+    // cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+    //     &numBlocks,
+    //     kernel,
+    //     blocks,
+    //     0);
+    // activeWarps = numBlocks * blocks / prop.warpSize;
+    // maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+    // printf("warpSize: %i\n", prop.warpSize);
+    // printf("Active warps: %i\n", activeWarps);
+    // printf("Max warps: %i\n", maxWarps);
+    // printf("Occupancy: %2f%\n",(double)activeWarps / maxWarps * 100 );
     for(int i = 0; i < (blocks * threads); i++){
         out[i] = 0;
     }
