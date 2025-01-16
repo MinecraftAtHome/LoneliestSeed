@@ -4835,7 +4835,6 @@ int main(int argc, char **argv) {
         }
     #endif
     
-    int cudaError = 0;
     GPU_ASSERT(cudaSetDevice(device));
     // int numBlocks;
     cudaDeviceProp prop;
@@ -4845,7 +4844,6 @@ int main(int argc, char **argv) {
     if(cudaError){
         fprintf(stderr, "Cuda error during init: %i", cudaError);
     }
-    cudaError = 0;
     GPU_ASSERT(cudaGetDeviceProperties(&prop, device));
     if(prop.major < 6){
         old_gpu = 1;
