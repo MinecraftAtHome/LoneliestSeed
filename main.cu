@@ -4763,6 +4763,7 @@ struct checkpoint_vars {
 uint64_t elapsed_chkpoint = 0;
 
 int main(int argc, char **argv) {
+    int old_gpu = 0;
     uint64_t block_min = 0;
     uint64_t block_max = 0;
     uint64_t checked = 0;
@@ -4834,14 +4835,22 @@ int main(int argc, char **argv) {
         }
     #endif
     
-    cudaSetDevice(device);
-    cudaMallocManaged(&out, (blocks * threads) * sizeof(*out));
+    int cudaError = 0;
+    GPU_ASSERT(cudaSetDevice(device));
     // int numBlocks;
-    // cudaDeviceProp prop;
+    cudaDeviceProp prop;
     // int activeWarps;
     // int maxWarps;
-    // cudaGetDevice(&device);
-    // cudaGetDeviceProperties(&prop, device);
+    GPU_ASSERT(cudaGetDevice(&device));
+    if(cudaError){
+        fprintf(stderr, "Cuda error during init: %i", cudaError);
+    }
+    cudaError = 0;
+    GPU_ASSERT(cudaGetDeviceProperties(&prop, device));
+    if(prop.major < 6){
+        old_gpu = 1;
+        fprintf(stderr, "Maxwell device detected - running smaller kernel runs for compat.\n");
+    }
     // cudaOccupancyMaxActiveBlocksPerMultiprocessor(
     //     &numBlocks,
     //     kernel,
@@ -4853,9 +4862,7 @@ int main(int argc, char **argv) {
     // printf("Active warps: %i\n", activeWarps);
     // printf("Max warps: %i\n", maxWarps);
     // printf("Occupancy: %2f%\n",(double)activeWarps / maxWarps * 100 );
-    for(int i = 0; i < (blocks * threads); i++){
-        out[i] = 0;
-    }
+
     //time_t start = time(NULL);
     auto start = high_resolution_clock::now();
     //gettimeofday(&start, NULL);
@@ -4863,9 +4870,22 @@ int main(int argc, char **argv) {
 	printf("starting...\n");
     uint64_t checkpointTemp = 0;
     FILE* seedsout = fopen("seeds.txt", "w+");
+    if(old_gpu){
+        block_min *= 2;
+        block_max *= 2;
+        blocks    /= 2;
+    }
+    GPU_ASSERT(cudaMallocManaged(&out, (blocks * threads) * sizeof(*out)));
+    for(int i = 0; i < (blocks * threads); i++){
+        out[i] = 0;
+    }
+
+
+
     for (uint64_t s = (uint64_t)block_min + offsetStart; s < (uint64_t)block_max; s++) {
 
         kernel<<<blocks, threads>>>(blocks * threads * s, out);
+
         GPU_ASSERT(cudaPeekAtLastError());
         GPU_ASSERT(cudaDeviceSynchronize());  
         checkpointTemp += 1;
@@ -4881,7 +4901,7 @@ int main(int argc, char **argv) {
             FILE *checkpoint_data = boinc_fopen("checkpoint.txt", "wb");
             struct checkpoint_vars data_store;
             data_store.offset = s - block_min;
-            data_store.elapsed_chkpoint = elapsed_chkpoint + duration.count();
+            data_store.elapsed_chkpoint = elapsed_chkpoint + duration.count()/1000;
             fwrite(&data_store, sizeof(data_store), 1, checkpoint_data);
             fclose(checkpoint_data);
             checkpointTemp = 0;
@@ -4908,11 +4928,9 @@ int main(int argc, char **argv) {
     auto duration = duration_cast<milliseconds>(end - start);
     checked = blocks*threads*(block_max - block_min);
     fprintf(stderr, "checked = %" PRIu64 "\n", checked);
-    fprintf(stderr, "time taken = %f\n", (double)duration.count()/1000.0);
+    fprintf(stderr, "time taken = %f\n", ((double)duration.count()/1000.0)+(double)elapsed_chkpoint);
 
-	double seeds_per_second = checked / ((double)duration.count()/1000.0);
-	double speedup = seeds_per_second / 199000;
+	double seeds_per_second = checked / ((double)duration.count()/1000.0)+(double)elapsed_chkpoint;
 	fprintf(stderr, "seeds per second: %f\n", seeds_per_second);
-	fprintf(stderr, "speedup: %fx\n", speedup);
     boinc_finish(0);
 }
