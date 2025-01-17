@@ -4841,9 +4841,6 @@ int main(int argc, char **argv) {
     // int activeWarps;
     // int maxWarps;
     GPU_ASSERT(cudaGetDevice(&device));
-    if(cudaError){
-        fprintf(stderr, "Cuda error during init: %i", cudaError);
-    }
     GPU_ASSERT(cudaGetDeviceProperties(&prop, device));
     if(prop.major < 6){
         old_gpu = 1;
