@@ -4835,7 +4835,7 @@ int main(int argc, char **argv) {
         }
     #endif
     
-    CUresult code = ;
+    CUresult code = cuInit(0);
     if (code != CUDA_SUCCESS) {
         fprintf(stderr, "Cuda Init: %s (code %d)\n", code);
         exit(EXIT_FAILURE);
