@@ -4835,7 +4835,11 @@ int main(int argc, char **argv) {
         }
     #endif
     
-    GPU_ASSERT(cuInit(0));
+    CUresult code = ;
+    if (code != CUDA_SUCCESS) {
+        fprintf(stderr, "Cuda Init: %s (code %d)\n", code);
+        exit(EXIT_FAILURE);
+    }
     GPU_ASSERT(cudaSetDevice(device));
     // int numBlocks;
     cudaDeviceProp prop;
