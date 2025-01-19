@@ -4835,11 +4835,7 @@ int main(int argc, char **argv) {
         }
     #endif
     
-    CUresult code = cuInit(0);
-    if (code != CUDA_SUCCESS) {
-        fprintf(stderr, "Cuda Init: %s (code %d)\n", code);
-        exit(EXIT_FAILURE);
-    }
+    GPU_ASSERT(cuInit(0));
     GPU_ASSERT(cudaSetDevice(device));
     // int numBlocks;
     cudaDeviceProp prop;
@@ -4869,7 +4865,7 @@ int main(int argc, char **argv) {
 
 	printf("starting...\n");
     uint64_t checkpointTemp = 0;
-    FILE* seedsout = fopen("seeds.txt", "w+");
+    FILE* seedsout = fopen("seeds.txt", "a+");
     if(old_gpu){
         block_min *= 2;
         block_max *= 2;
